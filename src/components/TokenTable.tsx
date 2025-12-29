@@ -2,36 +2,77 @@
 
 import { useState, useEffect } from 'react';
 import { Token } from '@/types/token';
-import { mockTokens } from '@/lib/mockData';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+
+// Function to fetch token data from CoinGecko API
+const fetchTokens = async (category: Token['category']): Promise<Token[]> => {
+  const response = await fetch(
+    'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h'
+  );
+  const data = await response.json();
+
+  // Map API data to Token interface and assign categories
+  const tokens: Token[] = data.map((coin: any, index: number) => {
+    let category: Token['category'];
+    if (index < 10) category = 'migrated';
+    else if (index < 25) category = 'final-stretch';
+    else category = 'new-pairs';
+
+    return {
+      id: coin.id,
+      name: coin.name,
+      symbol: coin.symbol.toUpperCase(),
+      price: coin.current_price,
+      change24h: coin.price_change_percentage_24h || 0,
+      volume24h: coin.total_volume,
+      marketCap: coin.market_cap,
+      category,
+      logo: coin.image,
+    };
+  });
+
+  return tokens.filter(token => token.category === category);
+};
 
 interface TokenTableProps {
   category: Token['category'];
 }
 
 export function TokenTable({ category }: TokenTableProps) {
-  const [tokens, setTokens] = useState<Token[]>(
-    mockTokens.filter(token => token.category === category)
-  );
-  const [sortBy, setSortBy] = useState<keyof Token>('price');
+  const { data: tokens = [], isLoading, error } = useQuery({
+    queryKey: ['tokens', category],
+    queryFn: () => fetchTokens(category),
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const [sortBy, setSortBy] = useState<keyof Token>('marketCap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Simulate real-time price updates
+  // Simulate additional real-time updates on top of API data
+  const [liveTokens, setLiveTokens] = useState<Token[]>(tokens);
+
   useEffect(() => {
+    setLiveTokens(tokens);
+  }, [tokens]);
+
+  useEffect(() => {
+    if (tokens.length === 0) return;
+
     const interval = setInterval(() => {
-      setTokens(prevTokens =>
+      setLiveTokens(prevTokens =>
         prevTokens.map(token => ({
           ...token,
-          price: token.price * (1 + (Math.random() - 0.5) * 0.01), // small random change
-          change24h: token.change24h + (Math.random() - 0.5) * 0.1,
+          price: token.price * (1 + (Math.random() - 0.5) * 0.005), // Smaller changes
+          change24h: token.change24h + (Math.random() - 0.5) * 0.05,
         }))
       );
-    }, 2000); // update every 2 seconds
+    }, 5000); // Update every 5 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [tokens]);
 
-  const sortedTokens = [...tokens].sort((a, b) => {
+  const sortedTokens = [...liveTokens].sort((a, b) => {
     const aVal = a[sortBy];
     const bVal = b[sortBy];
     if (typeof aVal === 'number' && typeof bVal === 'number') {
@@ -48,6 +89,31 @@ export function TokenTable({ category }: TokenTableProps) {
       setSortOrder('desc');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full">
+        <h2 className="text-2xl font-bold mb-4 capitalize text-gray-900 dark:text-white">{category.replace('-', ' ')}</h2>
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-12 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full">
+        <h2 className="text-2xl font-bold mb-4 capitalize text-gray-900 dark:text-white">{category.replace('-', ' ')}</h2>
+        <div className="text-red-500">Error loading data. Please try again later.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -83,7 +149,11 @@ export function TokenTable({ category }: TokenTableProps) {
               >
                 <td className="p-4">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                    {token.logo ? (
+                      <img src={token.logo} alt={token.name} className="w-8 h-8 rounded-full" />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                    )}
                     <div>
                       <div className="font-semibold text-gray-900 dark:text-white">{token.name}</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">{token.symbol}</div>
