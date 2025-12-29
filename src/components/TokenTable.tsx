@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Token } from '@/types/token';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { mockTokens } from '@/lib/mockData';
 
 // Function to fetch token data from CoinGecko API
 const fetchTokens = async (category: Token['category']): Promise<Token[]> => {
@@ -44,7 +45,12 @@ export function TokenTable({ category }: TokenTableProps) {
     queryKey: ['tokens', category],
     queryFn: () => fetchTokens(category),
     refetchInterval: 60000, // Refetch every minute
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
+
+  // Fallback to mock data if API fails
+  const displayTokens = error ? mockTokens.filter(token => token.category === category) : tokens;
 
   const [sortBy, setSortBy] = useState<keyof Token>('marketCap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -53,11 +59,11 @@ export function TokenTable({ category }: TokenTableProps) {
   const [liveTokens, setLiveTokens] = useState<Token[]>(tokens);
 
   useEffect(() => {
-    setLiveTokens(tokens);
-  }, [tokens]);
+    setLiveTokens(displayTokens);
+  }, [displayTokens]);
 
   useEffect(() => {
-    if (tokens.length === 0) return;
+    if (displayTokens.length === 0) return;
 
     const interval = setInterval(() => {
       setLiveTokens(prevTokens =>
@@ -70,7 +76,7 @@ export function TokenTable({ category }: TokenTableProps) {
     }, 5000); // Update every 5 seconds
 
     return () => clearInterval(interval);
-  }, [tokens]);
+  }, [displayTokens]);
 
   const sortedTokens = [...liveTokens].sort((a, b) => {
     const aVal = a[sortBy];
@@ -90,7 +96,7 @@ export function TokenTable({ category }: TokenTableProps) {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !error) {
     return (
       <div className="w-full">
         <h2 className="text-2xl font-bold mb-4 capitalize text-gray-900 dark:text-white">{category.replace('-', ' ')}</h2>
@@ -102,15 +108,6 @@ export function TokenTable({ category }: TokenTableProps) {
             ))}
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full">
-        <h2 className="text-2xl font-bold mb-4 capitalize text-gray-900 dark:text-white">{category.replace('-', ' ')}</h2>
-        <div className="text-red-500">Error loading data. Please try again later.</div>
       </div>
     );
   }
