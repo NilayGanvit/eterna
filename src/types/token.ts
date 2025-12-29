@@ -8,7 +8,8 @@ export interface Token {
   change7d: number;
   volume24h: number;
   marketCap: number;
-  category: 'new-pairs' | 'final-stretch' | 'migrated';
+  category: 'new' | 'final' | 'migrated' | 'new-pairs' | 'final-stretch';
   logo?: string;
   pair?: string; // for trading pairs
+  verified?: boolean;
 }

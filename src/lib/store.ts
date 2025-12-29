@@ -1,8 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
-// For now, empty store, will add slices later
+const appSlice = createSlice({
+  name: 'app',
+  initialState: {},
+  reducers: {},
+});
+
 export const store = configureStore({
-  reducer: {},
+  reducer: {
+    app: appSlice.reducer,
+  },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
