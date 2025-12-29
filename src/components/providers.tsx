@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from 'next-themes';
 import { NavigationProvider } from '@/hooks/useNavigation';
+import { RealTimePricesProvider } from './providers/RealTimePricesProvider';
 import { store } from '@/lib/store';
 import { useState } from 'react';
 
@@ -15,7 +16,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider attribute="class">
         <QueryClientProvider client={queryClient}>
           <NavigationProvider>
-            {children}
+            <RealTimePricesProvider>
+              {children}
+            </RealTimePricesProvider>
           </NavigationProvider>
         </QueryClientProvider>
       </ThemeProvider>

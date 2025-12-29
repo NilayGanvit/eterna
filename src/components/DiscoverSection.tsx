@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Token } from '@/types/token';
 import { mockData } from '@/lib/mockData';
 import { usePulseTokens } from '@/hooks/usePulseTokens';
+import { useRealTimePrices } from './providers/RealTimePricesProvider';
 import SearchInput from './SearchInput';
 
 type SortBy = 'name' | 'price' | 'change24h' | 'marketCap' | 'volume';
@@ -12,6 +13,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function DiscoverSection() {
   const { data: apiTokens, isLoading: apiLoading } = usePulseTokens();
+  const { prices: realTimePrices } = useRealTimePrices();
   const [tokens, setTokens] = useState<Token[]>([]);
   const [sortBy, setSortBy] = useState<SortBy>('marketCap');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -27,7 +29,18 @@ export default function DiscoverSection() {
     }
   }, [apiTokens, apiLoading]);
 
-  const filteredTokens = tokens.filter(t =>
+  // Update tokens with real-time prices
+  const updatedTokens = useMemo(() => {
+    return tokens.map(token => {
+      const realTimePrice = realTimePrices[token.id];
+      if (realTimePrice !== undefined) {
+        return { ...token, price: realTimePrice };
+      }
+      return token;
+    });
+  }, [tokens, realTimePrices]);
+
+  const filteredTokens = updatedTokens.filter(t =>
     t.name.toLowerCase().includes(searchQuery) ||
     t.symbol.toLowerCase().includes(searchQuery)
   );

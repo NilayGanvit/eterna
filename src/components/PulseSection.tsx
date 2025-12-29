@@ -7,11 +7,13 @@ import SearchInput from './SearchInput';
 import { Token } from '@/types/token';
 import { mockData } from '@/lib/mockData';
 import { usePulseTokens } from '@/hooks/usePulseTokens';
+import { useRealTimePrices } from './providers/RealTimePricesProvider';
 
 type SortBy = 'price' | 'change24h' | 'marketCap' | 'volume';
 
 export default function PulseSection() {
   const { data: apiTokens, isLoading: apiLoading } = usePulseTokens();
+  const { prices: realTimePrices } = useRealTimePrices();
   const [tokens, setTokens] = useState<Token[]>([]);
   const [sortBy, setSortBy] = useState<SortBy>('marketCap');
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +25,17 @@ export default function PulseSection() {
       setTokens(mockData);
     }
   }, [apiTokens, apiLoading]);
+
+  // Update tokens with real-time prices
+  const updatedTokens = useMemo(() => {
+    return tokens.map(token => {
+      const realTimePrice = realTimePrices[token.id];
+      if (realTimePrice !== undefined) {
+        return { ...token, price: realTimePrice };
+      }
+      return token;
+    });
+  }, [tokens, realTimePrices]);
 
   const sortTokens = (items: Token[]) => {
     return [...items].sort((a, b) => {
@@ -42,17 +55,17 @@ export default function PulseSection() {
   };
 
   const filteredAndSortedTokens = useMemo(() => {
-    let filtered = tokens;
+    let filtered = updatedTokens;
     
     if (searchQuery) {
-      filtered = tokens.filter(t =>
+      filtered = updatedTokens.filter(t =>
         t.name.toLowerCase().includes(searchQuery) ||
         t.symbol.toLowerCase().includes(searchQuery)
       );
     }
     
     return sortTokens(filtered);
-  }, [tokens, searchQuery, sortBy]);
+  }, [updatedTokens, searchQuery, sortBy]);
 
   const newPairs = filteredAndSortedTokens.filter(t => t.category === 'new' || t.category === 'new-pairs').slice(0, 7);
   const finalStretch = filteredAndSortedTokens.filter(t => t.category === 'final' || t.category === 'final-stretch').slice(0, 7);

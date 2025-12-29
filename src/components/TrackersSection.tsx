@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Token } from '@/types/token';
+import { useRealTimePrices } from './providers/RealTimePricesProvider';
 
 // Function to fetch trending tokens from CoinGecko API
 const fetchTrendingTokens = async (): Promise<Token[]> => {
@@ -68,17 +69,29 @@ export default function TrackersSection() {
     queryFn: fetchTrendingTokens,
     refetchInterval: 60000,
   });
+  const { prices: realTimePrices } = useRealTimePrices();
+
+  // Update tokens with real-time prices
+  const updatedTokens = useMemo(() => {
+    return tokens.map(token => {
+      const realTimePrice = realTimePrices[token.id];
+      if (realTimePrice !== undefined) {
+        return { ...token, price: realTimePrice };
+      }
+      return token;
+    });
+  }, [tokens, realTimePrices]);
 
   const [topGainers, setTopGainers] = useState<Token[]>([]);
   const [topLosers, setTopLosers] = useState<Token[]>([]);
 
   useEffect(() => {
-    if (tokens.length > 0) {
-      const sortedByChange = [...tokens].sort((a, b) => b.change24h - a.change24h);
+    if (updatedTokens.length > 0) {
+      const sortedByChange = [...updatedTokens].sort((a, b) => b.change24h - a.change24h);
       setTopGainers(sortedByChange.slice(0, 10));
       setTopLosers(sortedByChange.slice(-10).reverse());
     }
-  }, [tokens]);
+  }, [updatedTokens]);
 
   if (isLoading) {
     return (
