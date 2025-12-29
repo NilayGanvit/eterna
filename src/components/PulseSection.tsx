@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import PulseTokenCard from './PulseTokenCard';
+import SearchInput from './SearchInput';
 import { Token } from '@/types/token';
 import { mockData } from '@/lib/mockData';
 import { usePulseTokens } from '@/hooks/usePulseTokens';
@@ -13,6 +14,7 @@ export default function PulseSection() {
   const { data: apiTokens, isLoading: apiLoading } = usePulseTokens();
   const [tokens, setTokens] = useState<Token[]>([]);
   const [sortBy, setSortBy] = useState<SortBy>('marketCap');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (apiTokens && apiTokens.length > 0) {
@@ -39,9 +41,22 @@ export default function PulseSection() {
     });
   };
 
-  const newPairs = sortTokens(tokens.filter(t => t.category === 'new' || t.category === 'new-pairs')).slice(0, 7);
-  const finalStretch = sortTokens(tokens.filter(t => t.category === 'final' || t.category === 'final-stretch')).slice(0, 7);
-  const migrated = sortTokens(tokens.filter(t => t.category === 'migrated')).slice(0, 7);
+  const filteredAndSortedTokens = useMemo(() => {
+    let filtered = tokens;
+    
+    if (searchQuery) {
+      filtered = tokens.filter(t =>
+        t.name.toLowerCase().includes(searchQuery) ||
+        t.symbol.toLowerCase().includes(searchQuery)
+      );
+    }
+    
+    return sortTokens(filtered);
+  }, [tokens, searchQuery, sortBy]);
+
+  const newPairs = filteredAndSortedTokens.filter(t => t.category === 'new' || t.category === 'new-pairs').slice(0, 7);
+  const finalStretch = filteredAndSortedTokens.filter(t => t.category === 'final' || t.category === 'final-stretch').slice(0, 7);
+  const migrated = filteredAndSortedTokens.filter(t => t.category === 'migrated').slice(0, 7);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -66,9 +81,16 @@ export default function PulseSection() {
               <path d="M10 2L12.4 7.4L18 8.2L13.8 12.1L14.8 18L10 15.2L5.2 18L6.2 12.1L2 8.2L7.6 7.4L10 2Z" fill="currentColor" />
             </svg>
           </div>
+        </div>
+
+        {/* Search and Sort Controls */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-[250px]">
+            <SearchInput onSearchChange={setSearchQuery} />
+          </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-textSecondary font-medium">Sort by:</span>
+            <span className="text-xs text-textSecondary font-medium hidden sm:block">Sort by:</span>
             <div className="flex gap-1.5">
               {(['price', 'change24h', 'marketCap', 'volume'] as const).map((sort) => (
                 <button

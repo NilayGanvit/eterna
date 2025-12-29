@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from 'next-themes';
+import { NavigationProvider } from '@/hooks/useNavigation';
 import { store } from '@/lib/store';
 import { useState } from 'react';
 
@@ -13,7 +14,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <Provider store={store}>
       <ThemeProvider attribute="class">
         <QueryClientProvider client={queryClient}>
-          {children}
+          <NavigationProvider>
+            {children}
+          </NavigationProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </Provider>
