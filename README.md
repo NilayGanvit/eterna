@@ -15,10 +15,10 @@ A pixel-perfect replica of Axiom Trade's Pulse page featuring real-time token di
 ## Screenshots
 
 ### Desktop View
-![Desktop Screenshot](/images/desktop.png)
+![Desktop Screenshot](/public/images/desktop.png)
 
 ### Mobile View
-![Mobile Screenshot](/images/mobile.png)
+![Mobile Screenshot](/public/images/mobile.png)
 
 ## Tech Stack
 
