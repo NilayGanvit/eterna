@@ -12,6 +12,14 @@ A pixel-perfect replica of Axiom Trade's Pulse page featuring real-time token di
 - **Responsive Design**: Works seamlessly on mobile, tablet, and desktop devices
 - **Production Ready**: Built with Next.js 14, TypeScript, and Tailwind CSS
 
+## Screenshots
+
+### Desktop View
+![Desktop Screenshot](/images/desktop.png)
+
+### Mobile View
+![Mobile Screenshot](/images/mobile.png)
+
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
